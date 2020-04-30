@@ -1,0 +1,30 @@
+// Fonts
+@import url('https://fonts.googleapis.com/css?family=Nunito');
+
+// Variables
+@import 'variables';
+
+// Bootstrap
+@import '~bootstrap/scss/bootstrap';
+
+body{
+    background: lightgray;
+
+    .container {
+        display: flex; /* or inline-flex */
+        height: -webkit-fill-available;
+        padding: 2% 0;
+    }
+
+    .main    { flex: 2.2; }
+
+    .sidebar { 
+        flex: 1;
+        display: flex; 
+    }
+
+    table{
+        text-align: center;
+    }
+}
+
