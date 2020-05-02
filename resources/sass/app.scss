@@ -26,5 +26,9 @@ body{
     table{
         text-align: center;
     }
+
+    #elementid, .lat, .long {
+        display: none;
+    }
 }
 

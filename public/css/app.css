@@ -10906,3 +10906,9 @@ body table {
   text-align: center;
 }
 
+body #elementid,
+body .lat,
+body .long {
+  display: none;
+}
+

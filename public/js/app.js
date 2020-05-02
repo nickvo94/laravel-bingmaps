@@ -37328,20 +37328,41 @@ module.exports = function(module) {
 
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
-var PlacesJS = __webpack_require__(/*! ./places */ "./resources/js/places.js");
+var ViewJS = __webpack_require__(/*! ./view */ "./resources/js/view.js");
 
 var PinJS = __webpack_require__(/*! ./pin */ "./resources/js/pin.js");
 
 var token = document.head.querySelector('meta[name="csrf-token"]').content;
 var placesData;
+var editView;
+var viewArr = ['list-view-mode', 'add-view-mode', 'edit-view-mode'];
+var LIST_VIEW_MODE = 0;
+var ADD_VIEW_MODE = 1;
+var EDIT_VIEW_MODE = 2;
+var layoutArr = ['list-view-layout', 'add-view-layout', 'edit-view-layout'];
+var activeMode = '';
+var selectedId;
+var previousId;
+var retrunToListbool = false;
+var inputEditIdTextArr = ["edit-title", "edit-lat", "edit-long", "edit-openH", "edit-openM", "edit-closeH", "edit-closeM", "edit-describ"];
+var inputAddIdTextArr = ["add-title", "add-lat", "add-long", "add-openH", "add-openM", "add-closeH", "add-closeM", "add-describ"];
 var placeId = 0;
 var rowsPlaceTable;
+var rawPlaceData;
 var pinsArray = [];
-var map, mapoptions;
+var selected = null;
+var VIEW = new ViewJS();
+var editorState = {
+  mode: 'default',
+  selectedPin: null
+};
+var map, mapoptions, mapEvent;
 var pinInfobox = null; //alert("Start");
 
 var bingkey = "AoDOQpJ63wfxcif_EWqkh4ta3LPquD-k20VBdBSwYJZS3hH9X0X5ID_5FqUJr9Pt";
 var callbackFunction = "loadMapCB"; //on load initial
+
+var newPin = null;
 
 loadMapCB = function loadMapCB() {
   console.log('start init');
@@ -37359,10 +37380,26 @@ loadMapCB = function loadMapCB() {
 function onClickRenderPage(e) {
   var latlongObj = getLatlngEvent(e);
   console.log(latlongObj.lat + ' --- ' + latlongObj["long"]);
-  map.entities.clear();
-  setPins(placesData);
-  setLatLongOnMap(latlongObj.lat, latlongObj["long"], map, null);
-  setLatLongInput(latlongObj.lat, latlongObj["long"]);
+
+  if (activeMode === viewArr[ADD_VIEW_MODE]) {
+    //map.entities.clear(); 
+    //setPins(placesData);
+    //setLatLongOnMap(latlongObj.lat, latlongObj.long, map, null)
+    //setLatLongInput(latlongObj.lat, latlongObj.long);
+    newPin.setLocation(latlongObj.lat, latlongObj["long"]);
+    setLatLongInput(latlongObj.lat, latlongObj["long"]);
+  }
+
+  if (activeMode === viewArr[EDIT_VIEW_MODE]) {
+    var selectedPin = pinsArray[pinsArray.findIndex(function (o) {
+      return o.localPlaceId == selectedId;
+    })];
+    console.log(selectedPin);
+    selectedPin.setLocation(latlongObj.lat, latlongObj["long"]);
+    editorState.selectedPin = selectedPin;
+    editorState.mode = 'edit';
+    setLatLongInput(latlongObj.lat, latlongObj["long"]);
+  }
 }
 
 window.getLatlngEvent = function (e) {
@@ -37390,81 +37427,208 @@ window.getLatlngEvent = function (e) {
 };
 
 function setLatLongOnMap(latitude, longitude, map, placesData) {
-  var pin = new PinJS(latitude, longitude, map, placesData);
+  console.log(activeMode);
+  var pin = new PinJS(latitude, longitude, map, placesData, editorState);
   return pin;
 }
 
 function setLatLongInput(lat, _long) {
-  var inputLatVal = document.getElementsByName('lat');
-  var inputLongVal = document.getElementsByName('long');
-  inputLatVal[0].value = lat;
-  inputLongVal[0].value = _long;
+  var inputLatVal, inputLongVal;
+
+  switch (activeMode) {
+    //add mode
+    case viewArr[1]:
+      inputLatVal = document.getElementById('add-lat');
+      inputLongVal = document.getElementById('add-long');
+      break;
+    //edit mode
+
+    case viewArr[2]:
+      inputLatVal = document.getElementById('edit-lat');
+      inputLongVal = document.getElementById('edit-long');
+      break;
+
+    default:
+  }
+
+  inputLatVal.value = lat;
+  inputLongVal.value = _long;
 }
 
 function setPins(placesData) {
-  map.entities.clear();
-  var pinsArray = [];
+  console.log('set pins clear map ....' + retrunToListbool);
+
+  if (retrunToListbool) {
+    map.entities.clear();
+  }
+
   placesData.forEach(function (element) {
     //console.log(element)
-    var pin = setLatLongOnMap(element.lat, element["long"], map, element.id);
+    var pin = setLatLongOnMap(element.lat, element["long"], map, element.id, editorState);
     pinsArray.push(pin);
   });
   console.log(pinsArray);
 }
 
 window.loadPlace = function () {
-  var PlacesObj = new PlacesJS();
+  var PlacesObj = new ViewJS();
   PlacesObj.requestJSON("GET", null, "map/json", token, true, function (jsonObj) {
-    console.log('Show places');
+    console.log('Show places------');
     placesData = jsonObj;
     PlacesObj.showPlaces(placesData);
     setPins(placesData);
+    window.rawPlaceData = placesData;
+    console.log(window.rawPlaceData);
+    activeMode = viewArr[0];
   });
 };
 
-window.DeletePlace = function (id, lat, _long2) {
+window.DeletePlace = function (id) {
   console.log('starting to delete place');
-  var PlacesObjDel = new PlacesJS();
+  var PlacesObjDel = new ViewJS();
   PlacesObjDel.requestJSON("DELETE", null, "map/delete/" + id, token, true);
   loadPlace();
 };
 
-window.EditPlace = function (button, id) {
+window.SendRequest = function (button, id) {
   console.log('starting to edit place');
-  var x = document.getElementById("placeid" + id);
+  var inputVal = [];
+  var method, url;
 
-  if (x.contentEditable == "true") {
-    x.contentEditable = "false";
-    button.innerHTML = "Edit";
-    var titleEdited = document.getElementById("titleid" + id).innerHTML;
-    var latEdited = document.getElementById("latid" + id).innerHTML;
-    var PlacesObjEdit = new PlacesJS();
-    var jsonBody = {
-      "title": titleEdited,
-      "lat": latEdited
-    };
-    PlacesObjEdit.requestJSON("PUT", jsonBody, "map/" + id, token, true);
+  if (id) {
+    inputEditIdTextArr.forEach(function (e) {
+      inputVal.push(document.getElementById(e).value);
+    });
+    method = "PUT";
+    url = "map/" + id;
   } else {
-    x.contentEditable = "true";
-    button.innerHTML = "Save";
-  } //loadPlace();
+    inputAddIdTextArr.forEach(function (e) {
+      inputVal.push(document.getElementById(e).value);
+    });
+    method = "POST";
+    url = "map/";
+  }
 
+  var jsonBody = {
+    "title": inputVal[0],
+    "lat": inputVal[1],
+    "long": inputVal[2],
+    "open_hour": inputVal[3],
+    "open_min": inputVal[4],
+    "close_hour": inputVal[5],
+    "close_min": inputVal[6],
+    "description": inputVal[7]
+  };
+  console.log(jsonBody);
+  VIEW.requestJSON(method, jsonBody, url, token, true);
+};
+
+window.TimeFilter = function () {
+  var date = new Date();
+  var now = date.getHours() + date.getMinutes() / 60;
+  console.log(now);
 };
 
 window.searchFunction = function () {
   console.log('starting to search');
-  var PlacesObjSearch = new PlacesJS();
-  PlacesObjSearch.displaySearchResults();
+  var PlacesObjSearch = new ViewJS();
+  PlacesObjSearch.displaySearchResults(pinsArray);
 };
 
 window.rowOnClick = function (row) {
-  var cellVal = row.getElementsByTagName('td')[0].innerHTML;
+  console.log('row clicking ----');
+  selectedId = row.getElementsByTagName('td')[0].innerHTML;
+  var cellVal = selectedId;
   console.log(cellVal);
-  pinsArray.forEach(function (element) {
-    if (element.localPlaceId) {
-      new PinJS(element.location.latitude, element.location.longitude, map, cellval);
-    }
-  });
+
+  if (window.selected) {
+    previousId = window.selected.getElementsByTagName('td')[0].innerHTML;
+    var previous = previousId;
+    console.log(previous);
+    window.selected.innerHTML = VIEW.placeListView(window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+      return o.id == previous;
+    })]);
+    window.selected.style.backgroundColor = "transparent";
+    pinsArray[pinsArray.findIndex(function (o) {
+      return o.localPlaceId == previous;
+    })].unhighlightPin();
+  }
+
+  row.innerHTML = VIEW.placeSelectedView(window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+    return o.id == cellVal;
+  })]);
+  row.style.backgroundColor = "cyan";
+  pinsArray[pinsArray.findIndex(function (o) {
+    return o.localPlaceId == cellVal;
+  })].highlightPin();
+  window.selected = row;
+};
+
+window.ActivateMode = function (mode) {
+  activeMode = mode;
+  Microsoft.Maps.Events.addHandler(map, 'click', onClickRenderPage);
+  document.getElementById(layoutArr[0]).style.display = 'none';
+  var viewHtml;
+  var viewFunc;
+
+  switch (activeMode) {
+    //add mode
+    case viewArr[1]:
+      viewHtml = document.getElementById(layoutArr[1]);
+      viewFunc = VIEW.addView(inputAddIdTextArr);
+      newPin = new PinJS(0, 0, map, 1000000000, editorState);
+      break;
+    //edit mode
+
+    case viewArr[2]:
+      viewHtml = document.getElementById(layoutArr[2]);
+      viewFunc = VIEW.editView(window.rawPlaceData, selectedId, inputEditIdTextArr);
+      break;
+
+    default:
+  }
+
+  if (viewHtml.innerHTML) {
+    viewHtml.style.display = '';
+  } else {
+    viewHtml.innerHTML = viewFunc;
+  }
+};
+
+window.BackToListView = function () {
+  if (newPin) {
+    map.entities.remove(newPin.pin);
+    newPin = null;
+  }
+
+  retrunToListbool = true;
+
+  switch (activeMode) {
+    case viewArr[ADD_VIEW_MODE]:
+      document.getElementById(layoutArr[1]).style.display = 'none';
+      break;
+
+    case viewArr[EDIT_VIEW_MODE]:
+      document.getElementById(layoutArr[2]).style.display = 'none';
+      editorState.mode = 'default'; //if return not save edited pin
+
+      var selectedPin = pinsArray[pinsArray.findIndex(function (o) {
+        return o.localPlaceId == selectedId;
+      })];
+      var originPinSelected = window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+        return o.id == selectedId;
+      })];
+      selectedPin.setLocation(originPinSelected.lat, originPinSelected["long"]);
+      break;
+
+    default:
+  }
+
+  document.getElementById(layoutArr[0]).style.display = ''; //map.entities.clear();
+  //setPins(placesData);
+
+  activeMode = viewArr[0];
+  retrunToListbool = false;
 };
 
 /***/ }),
@@ -37529,7 +37693,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
-var PlacesJS = __webpack_require__(/*! ./places */ "./resources/js/places.js");
+var ViewJS = __webpack_require__(/*! ./view */ "./resources/js/view.js");
 
 var PinJS = /*#__PURE__*/function () {
   /* map;
@@ -37538,7 +37702,7 @@ var PinJS = /*#__PURE__*/function () {
   htmlUI;
   hoverColor = 'red';
   defaultColor = 'purple'; */
-  function PinJS(latitude, longitude, bingMap, placeId) {
+  function PinJS(latitude, longitude, bingMap, placeId, editorStateOb) {
     var _this = this;
 
     _classCallCheck(this, PinJS);
@@ -37548,54 +37712,104 @@ var PinJS = /*#__PURE__*/function () {
       return;
     }
 
+    var pinHighlighted = false;
     this.localPlaceId = placeId;
     this.location = new Microsoft.Maps.Location(latitude, longitude);
     this.pin = new Microsoft.Maps.Pushpin(this.location, {
       'draggable': false
     });
+    this.clickCB = null;
+    this.editorStateOb = editorStateOb;
     bingMap.entities.push(this.pin);
     console.log("new pin -------------");
 
     if (placeId) {
-      Microsoft.Maps.Events.addHandler(this.pin, 'mouseover', function (e) {
-        e.target.setOptions({
-          color: 'red'
-        });
-
-        _this.highlightPinInfo(e, true);
+      //Microsoft.Maps.Events.addHandler(this.pin, 'click', (e) => this._defaultClickCB(e));
+      this.clickCB = Microsoft.Maps.Events.addHandler(this.pin, 'click', function (e) {
+        return _this._clickCB(e);
       });
-      Microsoft.Maps.Events.addHandler(this.pin, 'mouseout', function (e) {
-        e.target.setOptions({
-          color: 'purple'
-        });
-
-        _this.highlightPinInfo(e, false);
-      });
+      /*             Microsoft.Maps.Events.addHandler(this.pin, 'mouseout', (e) => {
+                     e.target.setOptions({ color: 'purple' });
+                     //this.highlightTableInfo(e, false);
+               }); */
     }
   }
 
   _createClass(PinJS, [{
-    key: "highlightPinInfo",
-    value: function highlightPinInfo(e, hilightBool) {
-      if (hilightBool) {
-        var latlongInfo = getLatlngEvent(e); //var PlaceObjId = new PlacesJS();
-        //placeId = PlaceObjId.tracePinIdWithLatLong(latlongInfo.lat, latlongInfo.long, placesData);
-        //this.localPlaceId = placeId;
+    key: "_clickCB",
+    value: function _clickCB(e) {
+      switch (this.editorStateOb.mode) {
+        case 'default':
+          e.target.setOptions({
+            color: '#090'
+          });
+          this.editorStateOb.selectedPin = this;
+          window.rowOnClick(document.getElementById('placeid' + this.localPlaceId));
 
-        var rowSelected = document.getElementById('placeid' + this.localPlaceId);
-        console.log(latlongInfo + ' bool: ' + hilightBool + ' placeid: ' + this.localPlaceId);
-
-        if (this.localPlaceId != 0) {
-          rowSelected.style.backgroundColor = "cyan";
-        }
-      } else {
-        var rowSelected = document.getElementById('placeid' + this.localPlaceId);
-
-        if (this.localPlaceId != 0) {
-          rowSelected.style.backgroundColor = "transparent";
-        } //this.localPlaceId = 0;
+        case 'edit':
+          if (this.editorStateOb.selectedPin === this) {
+            console.log('this pin is selected');
+            this.setLocation(this.location.latitude, this.location.longitude);
+          }
 
       }
+    }
+  }, {
+    key: "setLocation",
+    value: function setLocation(latitude, longitude) {
+      this.location = new Microsoft.Maps.Location(latitude, longitude);
+      this.pin.setLocation(this.location);
+    }
+    /*    highlightTableInfo(e, hilightBool){   
+           
+          if(hilightBool){
+               var latlongInfo = getLatlngEvent(e);
+               //var PlaceObjId = new ViewJS();
+               //placeId = PlaceObjId.tracePinIdWithLatLong(latlongInfo.lat, latlongInfo.long, placesData);
+               //this.localPlaceId = placeId;
+               var rowSelected = document.getElementById('placeid'+ this.localPlaceId);
+               console.log(latlongInfo + ' bool: ' + hilightBool + ' placeid: ' + this.localPlaceId )
+               if(this.localPlaceId != 0){
+                   rowSelected.style.backgroundColor = "cyan";
+               }
+          }else{
+               var rowSelected = document.getElementById('placeid'+ this.localPlaceId);
+               if(this.localPlaceId != 0){
+                   rowSelected.style.backgroundColor = "transparent";
+               }
+               //this.localPlaceId = 0;
+           }
+           
+       } */
+
+  }, {
+    key: "highlightPin",
+    value: function highlightPin() {
+      this.pin.setOptions({
+        color: '#090'
+      });
+    }
+  }, {
+    key: "unhighlightPin",
+    value: function unhighlightPin() {
+      console.log('unhightlight pin ......');
+      this.pin.setOptions({
+        color: 'purple'
+      });
+    }
+  }, {
+    key: "hidePin",
+    value: function hidePin() {
+      this.pin.setOptions({
+        visible: false
+      });
+    }
+  }, {
+    key: "unhidePin",
+    value: function unhidePin() {
+      this.pin.setOptions({
+        visible: true
+      });
     }
   }]);
 
@@ -37606,10 +37820,10 @@ module.exports = PinJS;
 
 /***/ }),
 
-/***/ "./resources/js/places.js":
-/*!********************************!*\
-  !*** ./resources/js/places.js ***!
-  \********************************/
+/***/ "./resources/js/view.js":
+/*!******************************!*\
+  !*** ./resources/js/view.js ***!
+  \******************************/
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -37621,22 +37835,27 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
-var PlacesJS = /*#__PURE__*/function () {
-  function PlacesJS() {
-    _classCallCheck(this, PlacesJS);
+var placeholderTextArr = ["Title", "Lat", "Long", "Open hour", "Open minute", "Close hour", "Close minute", "Description"];
+var inputEditIdTextArr;
+var inputAddIdTextArr;
+
+var ViewJS = /*#__PURE__*/function () {
+  function ViewJS() {
+    _classCallCheck(this, ViewJS);
   }
 
-  _createClass(PlacesJS, [{
+  _createClass(ViewJS, [{
     key: "showPlaces",
-    //constructor(){}
     value: function showPlaces(data) {
+      var _this = this;
+
       var placesWrapper = document.getElementById("placesDisplay");
       var myHTML = '';
       data.forEach(function (element) {
-        myHTML += '<tr id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td>' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td id="latid' + element.id + '">' + parseFloat(element.lat).toFixed(2) + '</td>' + '<td>' + parseFloat(element["long"]).toFixed(2) + '</td>' + '<td>' + '<button type="submit" onClick="EditPlace(' + 'this, ' + element.id + ', ' + ')">Edit</button>' + '</td>' + '<td>' + '<button type="submit" onClick="DeletePlace(' + element.id + ', ' + element.lat + ', ' + element["long"] + ')">Delete</button>' + '</td>' + '</tr>';
+        myHTML += _this.placeListView(element);
       });
       placesWrapper.innerHTML = myHTML;
-      rowsPlaceTable = placesWrapper.getElementsByTagName('tr');
+      rowsPlaceTable = placesWrapper.getElementsByClassName('placerow');
     }
   }, {
     key: "requestJSON",
@@ -37684,53 +37903,120 @@ var PlacesJS = /*#__PURE__*/function () {
       jsonBody ? http_request.send(bodyStringified) : http_request.send();
       console.log(http_request);
     }
-  }, {
-    key: "tracePinIdWithLatLong",
-    value: function tracePinIdWithLatLong(traceLat, traceLong, listObj) {
-      var latOffset = 1;
-      var longOffset = 1;
-      var foundId = 0;
-      listObj.forEach(function (element) {
-        var latSub = parseFloat(Math.abs(traceLat - element.lat));
-        var longSub = parseFloat(Math.abs(traceLong - element["long"]));
-        console.log('latsub: ' + latSub + 'longsub: ' + longSub + 'found id: ' + foundId + latOffset);
+    /*    tracePinIdWithLatLong(traceLat, traceLong, listObj) {
+          var latOffset = 1
+          var longOffset = 1
+          var foundId = 0
+          listObj.forEach(element => {
+             var latSub = parseFloat(Math.abs(traceLat - element.lat));
+             var longSub  = parseFloat(Math.abs(traceLong - element.long));
+             console.log('latsub: '+ latSub + 'longsub: '+ longSub + 'found id: ' + foundId + latOffset)   
+             if( (latSub < latOffset) && (longSub < longOffset)){
+                latOffset = latSub;
+                longOffset = longSub;
+                foundId = element.id;
+                         
+             } 
+          });
+          console.log('found Id : ' + foundId);
+          return foundId;
+       } */
 
-        if (latSub < latOffset && longSub < longOffset) {
-          latOffset = latSub;
-          longOffset = longSub;
-          foundId = element.id;
-        }
-      });
-      console.log('found Id : ' + foundId);
-      return foundId;
-    }
   }, {
     key: "displaySearchResults",
-    value: function displaySearchResults() {
+    value: function displaySearchResults(pinsArray) {
       // Declare variables
       var input, filter, tr, a, i, txtValue;
+      var tempIdArr = [];
       input = document.getElementById('searchInput');
       searchFilter = input.value.toUpperCase();
       tr = rowsPlaceTable; // Loop through all list items, and hide those who don't match the search query
 
       for (i = 0; i < tr.length; i++) {
         a = tr[i].getElementsByTagName("td")[1];
+        idRow = tr[i].getElementsByTagName("td")[0].innerHTML;
         txtValue = a.textContent || a.innerText;
         console.log(txtValue);
 
         if (txtValue.toUpperCase().indexOf(searchFilter) > -1) {
           tr[i].style.display = "";
+          tempIdArr.push(Number(idRow));
         } else {
           tr[i].style.display = "none";
         }
       }
+
+      console.log(tempIdArr);
+      pinsArray.forEach(function (element) {
+        if (tempIdArr.indexOf(element.localPlaceId) > -1) {
+          element.unhidePin();
+        } else {
+          element.hidePin();
+        }
+      });
+    }
+  }, {
+    key: "placeSelectedView",
+    value: function placeSelectedView(element) {
+      var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '<td>' + '<button type="submit" id="edit-view-mode" onClick="ActivateMode(id' + ')">Edit</button>' + '</td>' + '<td>' + '<button type="submit" onClick="DeletePlace(' + element.id + ')">Delete</button>' + '</td>' + '</tr>';
+    }
+  }, {
+    key: "placeListView",
+    value: function placeListView(element) {
+      var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td class="title" id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>';
+    }
+  }, {
+    key: "editView",
+    value: function editView(rawData, selectedId, idArr) {
+      inputEditIdTextArr = idArr;
+      var inputHtml = this.inputTemplate(rawData, selectedId);
+      console.log(inputHtml);
+      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + inputHtml + '<br>' + '<button type="submit" onClick="SendRequest(' + 'this, ' + selectedId + ', ' + ')">Save</button>' + '</td>' + '</form> ';
+    }
+  }, {
+    key: "inputTemplate",
+    value: function inputTemplate(rawData, selectedId) {
+      if (rawData && selectedId) {
+        var elementObj = rawData[rawData.findIndex(function (o) {
+          return o.id == selectedId;
+        })];
+        var localEditInput = '';
+        var valueArr = [];
+
+        for (var prop in elementObj) {
+          if (elementObj.hasOwnProperty(prop)) {
+            if (prop != 'created_at' && prop != 'updated_at' && prop != 'id') valueArr.push(elementObj[prop]);
+          }
+        }
+
+        console.log(valueArr);
+        console.log(inputEditIdTextArr);
+
+        for (var i = 0; i < valueArr.length; i++) {
+          localEditInput += '<br>' + '<label for="' + inputEditIdTextArr[i] + '">' + placeholderTextArr[i] + '</label>' + '<br>' + '<input class="edit-input" type="text" id="' + inputEditIdTextArr[i] + '" placeholder="' + placeholderTextArr[i] + '" value="' + valueArr[i] + '" >';
+        }
+
+        return localEditInput;
+      }
+    }
+  }, {
+    key: "addView",
+    value: function addView(idArr) {
+      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + '<input class="add-input" type="text" id="add-title" placeholder="Title">' + '<input class="add-input" type="text" id="add-lat" placeholder="Lat">' + '<input class="add-input" type="text" id="add-long" placeholder="Long">' + '<input class="add-input" type="text" id="add-openH" placeholder="Open hour">' + '<input class="add-input" type="text" id="add-openM" placeholder="Open minute" >' + '<input class="add-input" type="text" id="add-closeH" placeholder="Close hour" >' + '<input class="add-input" type="text" id="add-closeM" placeholder="Close minute" >' + '<input class="add-input" type="text" id="add-describ" placeholder="Description" >' + '<button type="submit" onClick="SendRequest(' + 'this, ' + null + ', ' + ')">Save</button>' + '</td>' + '</form> ';
+    }
+  }, {
+    key: "oldView",
+    value: function oldView() {
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td>' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td id="latid' + element.id + '">' + parseFloat(element.lat).toFixed(2) + '</td>' + '<td>' + parseFloat(element["long"]).toFixed(2) + '</td>' + '<td>' + '<button type="submit" onClick="EditPlace(' + 'this, ' + element.id + ', ' + ')">Edit</button>' + '</td>' + '<td>' + '<button type="submit" onClick="DeletePlace(' + element.id + ', ' + element.lat + ', ' + element["long"] + ')">Delete</button>' + '</td>' + '</tr>';
     }
   }]);
 
-  return PlacesJS;
+  return ViewJS;
 }();
 
-module.exports = PlacesJS;
+module.exports = ViewJS;
 
 /***/ }),
 

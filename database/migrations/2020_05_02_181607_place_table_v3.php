@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class PlacesTable extends Migration
+class PlaceTableV3 extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,12 @@ class PlacesTable extends Migration
      */
     public function up()
     {
+        //
         Schema::table('places', function (Blueprint $table) {
-            $table->integer('lat')->default(0);
-            $table->float('long')->default(0);
+            $table->dropColumn('open-hour');
+            $table->dropColumn('open-min');
+            $table->dropColumn('close-hour');
+            $table->dropColumn('close-min');
         });
     }
 
@@ -26,8 +29,7 @@ class PlacesTable extends Migration
      */
     public function down()
     {
-        Schema::table('places', function (Blueprint $table) {
-            //
-        });
+        //
+        
     }
 }

@@ -16,15 +16,21 @@
             <div id="info" class="sidebar">
                 <div class="sidebarWrapper">
                     <h1>PlacesJS</h1>
-                    <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search for names.." title="Type in a name">
-                    <table id="placesDisplay"></table>
-                    <form method="post">
+                    <div id="list-view-layout">
+                        <button type="submit" id="add-view-mode" onclick="ActivateMode(id)" >Add new place</button>
+                        <button type="submit" id="filter" onclick="TimeFilter()" >Open Filter</button>
+                        <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search for names.." title="Type in a name">
+                        <table id="placesDisplay"></table>
+                    </div>
+                    <div id="edit-view-layout"></div>
+                    <div id="add-view-layout"></div>
+{{--                     <form method="post">
                         <input type="text" name="title" placeholder="Title">
                         <input type="text" name="lat" placeholder="Lat">
                         <input type="text" name="long" placeholder="Long">
                         {{ csrf_field() }}
                         <button type="submit">Submit</button>
-                    </form>
+                    </form> --}}
                 </div>
             </div>
             <div id='myMap' class="main"></div>
