@@ -37326,6 +37326,9 @@ module.exports = function(module) {
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
 var ViewJS = __webpack_require__(/*! ./view */ "./resources/js/view.js");
@@ -37333,8 +37336,6 @@ var ViewJS = __webpack_require__(/*! ./view */ "./resources/js/view.js");
 var PinJS = __webpack_require__(/*! ./pin */ "./resources/js/pin.js");
 
 var token = document.head.querySelector('meta[name="csrf-token"]').content;
-var placesData;
-var editView;
 var viewArr = ['list-view-mode', 'add-view-mode', 'edit-view-mode'];
 var LIST_VIEW_MODE = 0;
 var ADD_VIEW_MODE = 1;
@@ -37343,20 +37344,22 @@ var layoutArr = ['list-view-layout', 'add-view-layout', 'edit-view-layout'];
 var activeMode = '';
 var selectedId;
 var previousId;
-var retrunToListbool = false;
+var returnToListBool = false;
 var inputEditIdTextArr = ["edit-title", "edit-lat", "edit-long", "edit-openH", "edit-openM", "edit-closeH", "edit-closeM", "edit-describ"];
 var inputAddIdTextArr = ["add-title", "add-lat", "add-long", "add-openH", "add-openM", "add-closeH", "add-closeM", "add-describ"];
-var placeId = 0;
-var rowsPlaceTable;
 var rawPlaceData;
 var pinsArray = [];
 var selected = null;
+var deleteBool = false;
+var deleteId;
+var temporaryView;
+var listViewObj;
 var VIEW = new ViewJS();
 var editorState = {
   mode: 'default',
   selectedPin: null
 };
-var map, mapoptions, mapEvent;
+var map, mapOptions, mapEvent;
 var pinInfobox = null; //alert("Start");
 
 var bingkey = "AoDOQpJ63wfxcif_EWqkh4ta3LPquD-k20VBdBSwYJZS3hH9X0X5ID_5FqUJr9Pt";
@@ -37364,7 +37367,7 @@ var callbackFunction = "loadMapCB"; //on load initial
 
 var newPin = null;
 
-loadMapCB = function loadMapCB() {
+window.loadMapCB = function () {
   console.log('start init');
   var loc = new Microsoft.Maps.Location(60, 24);
   mapOptions = {
@@ -37427,7 +37430,7 @@ window.getLatlngEvent = function (e) {
 };
 
 function setLatLongOnMap(latitude, longitude, map, placesData) {
-  console.log(activeMode);
+  //console.log(activeMode)
   var pin = new PinJS(latitude, longitude, map, placesData, editorState);
   return pin;
 }
@@ -37456,9 +37459,10 @@ function setLatLongInput(lat, _long) {
 }
 
 function setPins(placesData) {
-  console.log('set pins clear map ....' + retrunToListbool);
+  console.log('set pins clear map ....' + returnToListBool);
+  pinsArray = [];
 
-  if (retrunToListbool) {
+  if (returnToListBool) {
     map.entities.clear();
   }
 
@@ -37470,30 +37474,41 @@ function setPins(placesData) {
   console.log(pinsArray);
 }
 
-window.loadPlace = function () {
-  var PlacesObj = new ViewJS();
-  PlacesObj.requestJSON("GET", null, "map/json", token, true, function (jsonObj) {
+window.loadPlace = function (method) {
+  listViewObj = new ViewJS();
+  listViewObj.requestJSON("GET", null, "map/json", token, true, function (jsonObj) {
+    console.log('Received places GET');
+    console.log(jsonObj);
     console.log('Show places------');
-    placesData = jsonObj;
-    PlacesObj.showPlaces(placesData);
-    setPins(placesData);
-    window.rawPlaceData = placesData;
-    console.log(window.rawPlaceData);
+    listViewObj.showPlaces(jsonObj);
+    method ? map.entities.clear() : '';
+    setPins(jsonObj);
+    rawPlaceData = jsonObj;
+
+    if (method == 'PUT' || method == 'POST') {
+      updateList(selectedId);
+    }
+
+    ;
     activeMode = viewArr[0];
   });
 };
 
 window.DeletePlace = function (id) {
   console.log('starting to delete place');
-  var PlacesObjDel = new ViewJS();
-  PlacesObjDel.requestJSON("DELETE", null, "map/delete/" + id, token, true);
-  loadPlace();
+  deleteBool = true;
+  deleteId = id;
+  console.log('delete: ' + deleteBool);
+  VIEW.requestJSON("DELETE", null, "map/delete/" + id, token, true, function () {
+    loadPlace('DELETE');
+  }); //map.entities.clear();
 };
 
 window.SendRequest = function (button, id) {
   console.log('starting to edit place');
   var inputVal = [];
-  var method, url;
+  var method = '';
+  var url = '';
 
   if (id) {
     inputEditIdTextArr.forEach(function (e) {
@@ -37506,7 +37521,7 @@ window.SendRequest = function (button, id) {
       inputVal.push(document.getElementById(e).value);
     });
     method = "POST";
-    url = "map/";
+    url = "map";
   }
 
   var jsonBody = {
@@ -37520,102 +37535,152 @@ window.SendRequest = function (button, id) {
     "description": inputVal[7]
   };
   console.log(jsonBody);
-  VIEW.requestJSON(method, jsonBody, url, token, true);
+  VIEW.requestJSON(method, jsonBody, url, token, true, function () {
+    BackToListView(method);
+  });
 };
 
 window.TimeFilter = function () {
-  var date = new Date();
-  var now = date.getHours() + date.getMinutes() / 60;
+  var date = new Date(); //var now = date.getHours() + date.getMinutes()/60 
+
+  now = 6;
   console.log(now);
+  var openPlaceIds = [];
+  rawPlaceData.forEach(function (e) {
+    var opentime, closetime;
+    opentime = Number(e.open_hour) + Number(e.open_min) / 60;
+    closetime = Number(e.close_hour) + Number(e.close_min) / 60;
+
+    if (opentime < 24 && closetime < 24) {
+      if (opentime < closetime) {
+        if (now > opentime && now < closetime || now == opentime) {
+          openPlaceIds.push(e);
+        }
+      }
+
+      if (opentime > closetime) {
+        closetime == 0 ? closetime = 24 : '';
+        closetime = 24 + closetime;
+
+        if (now > opentime && now < closetime || now + 24 > opentime && now + 24 < closetime || now == opentime) {
+          openPlaceIds.push(e);
+        }
+      }
+    }
+  });
+  console.log(openPlaceIds);
 };
 
 window.searchFunction = function () {
   console.log('starting to search');
-  var PlacesObjSearch = new ViewJS();
-  PlacesObjSearch.displaySearchResults(pinsArray);
+  temporaryView = document.getElementById(layoutArr[LIST_VIEW_MODE]);
+  temporaryView = VIEW.displaySearchResults(pinsArray);
+  console.log(temporaryView);
 };
 
 window.rowOnClick = function (row) {
   console.log('row clicking ----');
+
+  if (previousId == deleteId && deleteId != null) {
+    selected = null;
+    previousId = null;
+  }
+
+  ;
   selectedId = row.getElementsByTagName('td')[0].innerHTML;
   var cellVal = selectedId;
   console.log(cellVal);
 
-  if (window.selected) {
-    previousId = window.selected.getElementsByTagName('td')[0].innerHTML;
+  if (selected) {
+    previousId = selected.getElementsByTagName('td')[0].innerHTML;
     var previous = previousId;
     console.log(previous);
-    window.selected.innerHTML = VIEW.placeListView(window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+    selected.innerHTML = VIEW.placeListView(rawPlaceData[rawPlaceData.findIndex(function (o) {
       return o.id == previous;
     })]);
-    window.selected.style.backgroundColor = "transparent";
+    selected.style.backgroundColor = "transparent";
     pinsArray[pinsArray.findIndex(function (o) {
       return o.localPlaceId == previous;
     })].unhighlightPin();
   }
 
-  row.innerHTML = VIEW.placeSelectedView(window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+  row.innerHTML = VIEW.placeSelectedView(rawPlaceData[rawPlaceData.findIndex(function (o) {
     return o.id == cellVal;
   })]);
   row.style.backgroundColor = "cyan";
   pinsArray[pinsArray.findIndex(function (o) {
     return o.localPlaceId == cellVal;
   })].highlightPin();
-  window.selected = row;
+  selected = row;
 };
 
 window.ActivateMode = function (mode) {
   activeMode = mode;
   Microsoft.Maps.Events.addHandler(map, 'click', onClickRenderPage);
-  document.getElementById(layoutArr[0]).style.display = 'none';
-  var viewHtml;
+  document.getElementById(layoutArr[LIST_VIEW_MODE]).style.display = 'none';
+  var viewHtml = null;
   var viewFunc;
 
   switch (activeMode) {
     //add mode
     case viewArr[1]:
-      viewHtml = document.getElementById(layoutArr[1]);
+      viewHtml = document.getElementById(layoutArr[ADD_VIEW_MODE]);
       viewFunc = VIEW.addView(inputAddIdTextArr);
       newPin = new PinJS(0, 0, map, 1000000000, editorState);
       break;
     //edit mode
 
     case viewArr[2]:
-      viewHtml = document.getElementById(layoutArr[2]);
-      viewFunc = VIEW.editView(window.rawPlaceData, selectedId, inputEditIdTextArr);
+      console.log('Render edit mode view, selectedId: ' + selectedId);
+      viewHtml = document.getElementById(layoutArr[EDIT_VIEW_MODE]);
+      viewFunc = VIEW.editView(rawPlaceData, selectedId, inputEditIdTextArr);
       break;
 
     default:
   }
 
-  if (viewHtml.innerHTML) {
-    viewHtml.style.display = '';
+  if (viewHtml) {
+    if (viewFunc) {
+      viewHtml.innerHTML = viewFunc;
+      viewHtml.style.display = '';
+    } else {
+      viewHtml.style.display = 'none';
+    }
   } else {
-    viewHtml.innerHTML = viewFunc;
+    console.log('ActivateMode could not find a relevant DOM object');
   }
 };
 
-window.BackToListView = function () {
+window.BackToListView = function (method) {
+  console.log('Back to list ....');
+
   if (newPin) {
     map.entities.remove(newPin.pin);
     newPin = null;
   }
 
-  retrunToListbool = true;
+  returnToListBool = true;
+  var inputval;
 
   switch (activeMode) {
     case viewArr[ADD_VIEW_MODE]:
+      inputAddIdTextArr.forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
       document.getElementById(layoutArr[1]).style.display = 'none';
       break;
 
     case viewArr[EDIT_VIEW_MODE]:
+      /* inputEditIdTextArr.forEach(id => {
+          document.getElementById(id).value = '';
+      }); */
       document.getElementById(layoutArr[2]).style.display = 'none';
       editorState.mode = 'default'; //if return not save edited pin
 
       var selectedPin = pinsArray[pinsArray.findIndex(function (o) {
         return o.localPlaceId == selectedId;
       })];
-      var originPinSelected = window.rawPlaceData[window.rawPlaceData.findIndex(function (o) {
+      var originPinSelected = rawPlaceData[rawPlaceData.findIndex(function (o) {
         return o.id == selectedId;
       })];
       selectedPin.setLocation(originPinSelected.lat, originPinSelected["long"]);
@@ -37624,12 +37689,20 @@ window.BackToListView = function () {
     default:
   }
 
-  document.getElementById(layoutArr[0]).style.display = ''; //map.entities.clear();
-  //setPins(placesData);
+  if (method) {
+    loadPlace(method);
+  }
 
+  document.getElementById(layoutArr[0]).style.display = '';
   activeMode = viewArr[0];
-  retrunToListbool = false;
+  returnToListBool = false;
 };
+
+function updateList(updatedId) {
+  console.log('updating selection by id ' + updatedId);
+  var updateRow = document.getElementById('placeid' + updatedId);
+  updatedId ? rowOnClick(updateRow) : '';
+}
 
 /***/ }),
 
@@ -37720,8 +37793,7 @@ var PinJS = /*#__PURE__*/function () {
     });
     this.clickCB = null;
     this.editorStateOb = editorStateOb;
-    bingMap.entities.push(this.pin);
-    console.log("new pin -------------");
+    bingMap.entities.push(this.pin); //console.log("new pin -------------");
 
     if (placeId) {
       //Microsoft.Maps.Events.addHandler(this.pin, 'click', (e) => this._defaultClickCB(e));
@@ -37836,8 +37908,7 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
 var placeholderTextArr = ["Title", "Lat", "Long", "Open hour", "Open minute", "Close hour", "Close minute", "Description"];
-var inputEditIdTextArr;
-var inputAddIdTextArr;
+var inputIdTextArr;
 
 var ViewJS = /*#__PURE__*/function () {
   function ViewJS() {
@@ -37864,8 +37935,7 @@ var ViewJS = /*#__PURE__*/function () {
       var jsonObj;
       var bodyStringified;
       jsonBody ? bodyStringified = JSON.stringify(jsonBody) : '';
-      console.log('sending ...' + method);
-      console.log(bodyStringified);
+      console.log('sending ...' + method); //console.log(bodyStringified)
 
       try {
         // Opera 8.0+, Firefox, Chrome, Safari
@@ -37891,6 +37961,7 @@ var ViewJS = /*#__PURE__*/function () {
           jsonObj = JSON.parse(http_request.responseText); //console.log(jsonObj);
 
           if (callback) {
+            console.log('callback ........');
             callback(jsonObj);
           }
         }
@@ -37903,25 +37974,6 @@ var ViewJS = /*#__PURE__*/function () {
       jsonBody ? http_request.send(bodyStringified) : http_request.send();
       console.log(http_request);
     }
-    /*    tracePinIdWithLatLong(traceLat, traceLong, listObj) {
-          var latOffset = 1
-          var longOffset = 1
-          var foundId = 0
-          listObj.forEach(element => {
-             var latSub = parseFloat(Math.abs(traceLat - element.lat));
-             var longSub  = parseFloat(Math.abs(traceLong - element.long));
-             console.log('latsub: '+ latSub + 'longsub: '+ longSub + 'found id: ' + foundId + latOffset)   
-             if( (latSub < latOffset) && (longSub < longOffset)){
-                latOffset = latSub;
-                longOffset = longSub;
-                foundId = element.id;
-                         
-             } 
-          });
-          console.log('found Id : ' + foundId);
-          return foundId;
-       } */
-
   }, {
     key: "displaySearchResults",
     value: function displaySearchResults(pinsArray) {
@@ -37959,7 +38011,7 @@ var ViewJS = /*#__PURE__*/function () {
     key: "placeSelectedView",
     value: function placeSelectedView(element) {
       var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
-      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '<td>' + '<button type="submit" id="edit-view-mode" onClick="ActivateMode(id' + ')">Edit</button>' + '</td>' + '<td>' + '<button type="submit" onClick="DeletePlace(' + element.id + ')">Delete</button>' + '</td>' + '</tr>';
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>' + '<div>' + '<button type="submit" id="edit-view-mode" onClick="ActivateMode(id' + ')">Edit</button>' + '<button type="submit" onClick="DeletePlace(' + element.id + ')">Delete</button>' + '</div>';
     }
   }, {
     key: "placeListView",
@@ -37970,41 +38022,48 @@ var ViewJS = /*#__PURE__*/function () {
   }, {
     key: "editView",
     value: function editView(rawData, selectedId, idArr) {
-      inputEditIdTextArr = idArr;
+      inputIdTextArr = [];
+      inputIdTextArr = idArr;
+      console.log(inputIdTextArr);
       var inputHtml = this.inputTemplate(rawData, selectedId);
-      console.log(inputHtml);
       return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + inputHtml + '<br>' + '<button type="submit" onClick="SendRequest(' + 'this, ' + selectedId + ', ' + ')">Save</button>' + '</td>' + '</form> ';
     }
   }, {
     key: "inputTemplate",
     value: function inputTemplate(rawData, selectedId) {
+      var localInput = '';
+      var valueArr = [];
+
       if (rawData && selectedId) {
         var elementObj = rawData[rawData.findIndex(function (o) {
           return o.id == selectedId;
         })];
-        var localEditInput = '';
-        var valueArr = [];
 
         for (var prop in elementObj) {
           if (elementObj.hasOwnProperty(prop)) {
-            if (prop != 'created_at' && prop != 'updated_at' && prop != 'id') valueArr.push(elementObj[prop]);
+            if (prop != 'created_at' && prop != 'updated_at' && prop != 'id') {
+              valueArr.push(elementObj[prop]);
+            }
           }
         }
-
-        console.log(valueArr);
-        console.log(inputEditIdTextArr);
-
-        for (var i = 0; i < valueArr.length; i++) {
-          localEditInput += '<br>' + '<label for="' + inputEditIdTextArr[i] + '">' + placeholderTextArr[i] + '</label>' + '<br>' + '<input class="edit-input" type="text" id="' + inputEditIdTextArr[i] + '" placeholder="' + placeholderTextArr[i] + '" value="' + valueArr[i] + '" >';
-        }
-
-        return localEditInput;
       }
+
+      for (var i = 0; i < placeholderTextArr.length; i++) {
+        var value = valueArr[i] ? 'value="' + valueArr[i] + '"' : 'value=""';
+        localInput += '<br>' + '<label for="' + inputIdTextArr[i] + '">' + placeholderTextArr[i] + '</label>' + '<br>' + '<input class="edit-input" type="text" id="' + inputIdTextArr[i] + '" placeholder="' + placeholderTextArr[i] + '"' + value + '>';
+      }
+
+      console.log('Created inputTemplate:');
+      console.log(localInput);
+      return localInput;
     }
   }, {
     key: "addView",
     value: function addView(idArr) {
-      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + '<input class="add-input" type="text" id="add-title" placeholder="Title">' + '<input class="add-input" type="text" id="add-lat" placeholder="Lat">' + '<input class="add-input" type="text" id="add-long" placeholder="Long">' + '<input class="add-input" type="text" id="add-openH" placeholder="Open hour">' + '<input class="add-input" type="text" id="add-openM" placeholder="Open minute" >' + '<input class="add-input" type="text" id="add-closeH" placeholder="Close hour" >' + '<input class="add-input" type="text" id="add-closeM" placeholder="Close minute" >' + '<input class="add-input" type="text" id="add-describ" placeholder="Description" >' + '<button type="submit" onClick="SendRequest(' + 'this, ' + null + ', ' + ')">Save</button>' + '</td>' + '</form> ';
+      inputIdTextArr = [];
+      inputIdTextArr = idArr;
+      var inputhtml = this.inputTemplate();
+      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + inputhtml + '<br>' + '<button type="submit" onClick="SendRequest(' + 'this, ' + null + ', ' + ')">Add</button>' + '</td>' + '</form> ';
     }
   }, {
     key: "oldView",

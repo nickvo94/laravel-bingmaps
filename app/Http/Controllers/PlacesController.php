@@ -20,9 +20,9 @@ class PlacesController extends Controller
 
     public function indexJson(){
 
-        $placesJson = Place::all();
+        $placesJson = Place::all()->toJson(JSON_PRETTY_PRINT);
 
-        return response()->json($placesJson);
+        return response($placesJson, 200);
     }
 
     public function create(Request $request){
@@ -38,7 +38,9 @@ class PlacesController extends Controller
         $newPlace -> description = is_null($request->description) ? '' : $request -> description;
         $newPlace -> save();
 
-        return redirect('/map');
+        return response()->json([
+            "message" => "new place created"
+        ], 200);
 
     }
 
@@ -96,7 +98,7 @@ class PlacesController extends Controller
     
             return response()->json([
               "message" => "place deleted"
-            ], 202);
+            ], 200);
             } else {
                 return response()->json([
                 "message" => "Place not found"

@@ -1,8 +1,7 @@
 require('./bootstrap');
 
 var placeholderTextArr = ["Title","Lat","Long","Open hour","Open minute","Close hour","Close minute","Description"]
-var inputEditIdTextArr;
-var inputAddIdTextArr;
+var inputIdTextArr;
 
 class ViewJS {
    
@@ -24,7 +23,7 @@ class ViewJS {
       var bodyStringified
       jsonBody? bodyStringified = JSON.stringify(jsonBody):'';
       console.log('sending ...' + method);
-      console.log(bodyStringified)
+      //console.log(bodyStringified)
       try{
          // Opera 8.0+, Firefox, Chrome, Safari
          http_request = new XMLHttpRequest();
@@ -54,6 +53,7 @@ class ViewJS {
               //console.log(jsonObj);
               
               if (callback) {
+                  console.log('callback ........');
                   callback(jsonObj);
                }
          }
@@ -68,25 +68,6 @@ class ViewJS {
       jsonBody? http_request.send(bodyStringified) : http_request.send();
       console.log(http_request);
    }
-
-/*    tracePinIdWithLatLong(traceLat, traceLong, listObj) {
-      var latOffset = 1
-      var longOffset = 1
-      var foundId = 0
-      listObj.forEach(element => {
-         var latSub = parseFloat(Math.abs(traceLat - element.lat));
-         var longSub  = parseFloat(Math.abs(traceLong - element.long));
-         console.log('latsub: '+ latSub + 'longsub: '+ longSub + 'found id: ' + foundId + latOffset)   
-         if( (latSub < latOffset) && (longSub < longOffset)){
-            latOffset = latSub;
-            longOffset = longSub;
-            foundId = element.id;
-                     
-         } 
-      });
-      console.log('found Id : ' + foundId);
-      return foundId;
-   } */
 
    displaySearchResults(pinsArray){
 
@@ -134,12 +115,15 @@ class ViewJS {
             + '<td class="long" id="longid' + element.id + '">' + element.long + '</td>'
             + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>'
             + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>'
-            + '<td>' +'<button type="submit" id="edit-view-mode" onClick="ActivateMode(id'
-            +')">Edit</button>' + '</td>'
-            + '<td>' +'<button type="submit" onClick="DeletePlace(' 
-               + element.id 
-            +')">Delete</button>' + '</td>'
          +'</tr>'
+         + '<div>' 
+         + '<button type="submit" id="edit-view-mode" onClick="ActivateMode(id'
+         +')">Edit</button>'
+         +'<button type="submit" onClick="DeletePlace(' 
+            + element.id 
+         +')">Delete</button>' 
+         + '</div>'
+         
       )
    }
    placeListView (element) {
@@ -157,14 +141,16 @@ class ViewJS {
    }
 
    editView(rawData, selectedId, idArr){
-      inputEditIdTextArr = idArr;
+      inputIdTextArr = [];
+      inputIdTextArr = idArr;
+      console.log(inputIdTextArr)
       var inputHtml = this.inputTemplate(rawData, selectedId);
-      console.log(inputHtml)
+      
          
-      return(
+      return (
          '<button type="submit" onClick="BackToListView()">Back to List view</button>'
          +'<form action="#">'
-         +inputHtml
+         + inputHtml
          +'<br>'
          +'<button type="submit" onClick="SendRequest('
          + 'this, ' 
@@ -174,48 +160,50 @@ class ViewJS {
       )
    }
 
-   inputTemplate(rawData, selectedId){      
+   inputTemplate(rawData, selectedId){
+      var localInput = '';
+      var valueArr = [];      
       if(rawData && selectedId){
-         var elementObj = rawData[rawData.findIndex(o => o.id == selectedId)];
-         var localEditInput = '';
-         var valueArr = [];
+         var elementObj = rawData[rawData.findIndex(o => o.id == selectedId)];   
          for (var prop in elementObj) {
             if (elementObj.hasOwnProperty(prop)) {
-               if(prop != 'created_at' && prop != 'updated_at' && prop != 'id')valueArr.push(elementObj[prop])
+               if (prop != 'created_at' && prop != 'updated_at' && prop != 'id') {
+                  valueArr.push(elementObj[prop]);
+               }
             }
          }
-         console.log(valueArr);
-         console.log(inputEditIdTextArr)
-         
-         for(var i = 0; i < valueArr.length; i++){
-            localEditInput +=
-            '<br>'
-            +'<label for="'+ inputEditIdTextArr[i] +'">'+ placeholderTextArr[i] +'</label>'
-            +'<br>'
-            +'<input class="edit-input" type="text" id="'+ inputEditIdTextArr[i] +'" placeholder="'+ placeholderTextArr[i] +'" value="'+ valueArr[i] +'" >'
-
-         }
-         return localEditInput;
       }
+      for(var i = 0; i < placeholderTextArr.length; i++){
+         var value = valueArr[i] ? 'value="' + valueArr[i] +'"' : 'value=""';
+         localInput +=
+         '<br>'
+         +'<label for="'+ inputIdTextArr[i] +'">'+ placeholderTextArr[i] +'</label>'
+         +'<br>'
+         +'<input class="edit-input" type="text" id="'+ inputIdTextArr[i] 
+         +'" placeholder="'+ placeholderTextArr[i] +'"'
+         + value
+         + '>'
+
+      }
+      console.log('Created inputTemplate:');
+      console.log(localInput)
+      return localInput;
 
    }
 
    addView(idArr){
+      inputIdTextArr = [];
+      inputIdTextArr = idArr;
+      var inputhtml = this.inputTemplate();
       return(
          '<button type="submit" onClick="BackToListView()">Back to List view</button>'
          +'<form action="#">'
-         +'<input class="add-input" type="text" id="add-title" placeholder="Title">'
-         +'<input class="add-input" type="text" id="add-lat" placeholder="Lat">'
-         +'<input class="add-input" type="text" id="add-long" placeholder="Long">'
-         +'<input class="add-input" type="text" id="add-openH" placeholder="Open hour">'
-         +'<input class="add-input" type="text" id="add-openM" placeholder="Open minute" >'
-         +'<input class="add-input" type="text" id="add-closeH" placeholder="Close hour" >'
-         +'<input class="add-input" type="text" id="add-closeM" placeholder="Close minute" >'
-         +'<input class="add-input" type="text" id="add-describ" placeholder="Description" >'
+         + inputhtml
+         +'<br>'
          +'<button type="submit" onClick="SendRequest('
          + 'this, ' 
          + null + ', '
-         +')">Save</button>' + '</td>'
+         +')">Add</button>' + '</td>'
          +'</form> '
       )
    }

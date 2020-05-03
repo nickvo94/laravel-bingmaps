@@ -22,7 +22,7 @@ class PinJS {
        this.editorStateOb = editorStateOb;
                      
        bingMap.entities.push(this.pin);
-       console.log("new pin -------------");
+       //console.log("new pin -------------");
        if (placeId) {
             //Microsoft.Maps.Events.addHandler(this.pin, 'click', (e) => this._defaultClickCB(e));
             
