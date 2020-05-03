@@ -146,12 +146,13 @@ function setPins(placesData){
 }
 
 window.loadPlace = function(method){
-    listViewObj = new ViewJS(); 
+    listViewObj = new ViewJS();  
     listViewObj.requestJSON("GET", null, "map/json", token, true, (jsonObj)=>{
         console.log('Received places GET');
         console.log(jsonObj);
         console.log('Show places------');
-        listViewObj.showPlaces(jsonObj);
+        temporaryView = listViewObj.showPlaces(jsonObj);
+        console.log(temporaryView)
         method ? map.entities.clear() : '';
         setPins(jsonObj);
         rawPlaceData = jsonObj;
@@ -200,44 +201,13 @@ window.SendRequest = function(button, id){
 }
 
 window.TimeFilter = function () {
-    var date = new Date()
-    //var now = date.getHours() + date.getMinutes()/60 
-    now = 6;
-    console.log(now)
-    var openPlaceIds = [] 
-    rawPlaceData.forEach(e => {
-        var opentime, closetime
-        opentime = Number(e.open_hour) + Number(e.open_min)/60;
-        closetime = Number(e.close_hour) + Number(e.close_min)/60;
-        if(opentime < 24 && closetime < 24){
-            if(opentime < closetime){
-                if( (now > opentime && now < closetime) || now == opentime ) {
-                    openPlaceIds.push(e)
-                }
-            }
-            if(opentime > closetime){
-                closetime == 0 ? closetime = 24 : '';
-                closetime = 24 + closetime;
-                
-                if ( (now > opentime && now < closetime)
-                    || (now + 24 > opentime && now + 24 < closetime)
-                    || now == opentime)
-                {
-                    openPlaceIds.push(e)
-                }
-            }
-        }  
-    });
-    console.log(openPlaceIds)   
+    VIEW.displayOpenResult(temporaryView, rawPlaceData)
 }
 
 window.searchFunction = function() {
     console.log('starting to search');
-    temporaryView = document.getElementById(layoutArr[LIST_VIEW_MODE]);
-    temporaryView = VIEW.displaySearchResults(pinsArray);
+    VIEW.displaySearchResults(pinsArray);
     console.log(temporaryView);
-
-    
 }
 
 window.rowOnClick = function(row){

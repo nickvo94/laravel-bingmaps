@@ -15,6 +15,7 @@ class ViewJS {
       });      
       placesWrapper.innerHTML = myHTML;
       rowsPlaceTable = placesWrapper.getElementsByClassName('placerow');
+      return placesWrapper;
    }
 
    requestJSON(method, jsonBody, url, token, boolpass, callback) {
@@ -103,6 +104,54 @@ class ViewJS {
       });
 
 
+   }
+
+   displayOpenResult(view, data){
+      var date = new Date()
+      //var now = date.getHours() + date.getMinutes()/60 
+      now = 10; 
+      var tr = view.getElementsByTagName("tr")
+      console.log(tr)  
+      var openPlaceIds = [] 
+        
+      for (i = 0; i < tr.length; i++) {
+         var opentime, closetime;
+         for (x = 0; x < data.length; x++)  {
+            console.log(tr[i].getElementsByTagName("td")[0].innerHTML)
+            if(Number(tr[i].getElementsByTagName("td")[0].innerHTML) == Number(data[x].id)){
+               opentime = Number(data[x].open_hour) + Number(data[x].open_min)/60;
+               closetime = Number(data[x].close_hour) + Number(data[x].close_min)/60;
+               if(opentime < 24 && closetime < 24){
+                  if(opentime < closetime){
+                        if( (now > opentime && now < closetime) || now == opentime ) {
+                           openPlaceIds.push(data[x])
+                           tr[i].style.display = '';
+                        }
+                  }
+                  if(opentime > closetime){
+                        closetime == 0 ? closetime = 24 : '';
+                        closetime = 24 + closetime;
+                        
+                        if ( (now > opentime && now < closetime)
+                           || (now + 24 > opentime && now + 24 < closetime)
+                           || now == opentime)
+                        {
+                           openPlaceIds.push(data[x])
+                           tr[i].style.display = '';
+                        }
+                  }
+                  else{
+                     tr[i].style.display = 'none';
+                  }
+               }   
+
+            }
+         };
+
+      }
+            
+      
+      console.log(openPlaceIds)   
    }
 
    placeSelectedView (element) {

@@ -17,8 +17,10 @@
                 <div class="sidebarWrapper">
                     <h1>PlacesJS</h1>
                     <div id="list-view-layout">
-                        <button type="submit" id="add-view-mode" onclick="ActivateMode(id)" >Add new place</button>
-                        <button type="submit" id="filter" onclick="TimeFilter()" >Open Filter</button>
+                        <i class="fa fa-plus fa-lg" aria-hidden="true" type="submit" id="add-view-mode" onclick="ActivateMode(id)">Add</i>
+                        <i class="fa fa-filter fa-lg" aria-hidden="true" type="submit" id="filter" onclick="TimeFilter()">Open places</i>
+                        <br>
+                        <i class="fa fa-search fa-lg" aria-hidden="true"></i>
                         <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search for names.." title="Type in a name">
                         <table id="placesDisplay"></table>
                     </div>

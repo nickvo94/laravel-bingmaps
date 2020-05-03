@@ -37480,7 +37480,8 @@ window.loadPlace = function (method) {
     console.log('Received places GET');
     console.log(jsonObj);
     console.log('Show places------');
-    listViewObj.showPlaces(jsonObj);
+    temporaryView = listViewObj.showPlaces(jsonObj);
+    console.log(temporaryView);
     method ? map.entities.clear() : '';
     setPins(jsonObj);
     rawPlaceData = jsonObj;
@@ -37541,40 +37542,12 @@ window.SendRequest = function (button, id) {
 };
 
 window.TimeFilter = function () {
-  var date = new Date(); //var now = date.getHours() + date.getMinutes()/60 
-
-  now = 6;
-  console.log(now);
-  var openPlaceIds = [];
-  rawPlaceData.forEach(function (e) {
-    var opentime, closetime;
-    opentime = Number(e.open_hour) + Number(e.open_min) / 60;
-    closetime = Number(e.close_hour) + Number(e.close_min) / 60;
-
-    if (opentime < 24 && closetime < 24) {
-      if (opentime < closetime) {
-        if (now > opentime && now < closetime || now == opentime) {
-          openPlaceIds.push(e);
-        }
-      }
-
-      if (opentime > closetime) {
-        closetime == 0 ? closetime = 24 : '';
-        closetime = 24 + closetime;
-
-        if (now > opentime && now < closetime || now + 24 > opentime && now + 24 < closetime || now == opentime) {
-          openPlaceIds.push(e);
-        }
-      }
-    }
-  });
-  console.log(openPlaceIds);
+  VIEW.displayOpenResult(temporaryView, rawPlaceData);
 };
 
 window.searchFunction = function () {
   console.log('starting to search');
-  temporaryView = document.getElementById(layoutArr[LIST_VIEW_MODE]);
-  temporaryView = VIEW.displaySearchResults(pinsArray);
+  VIEW.displaySearchResults(pinsArray);
   console.log(temporaryView);
 };
 
@@ -37927,6 +37900,7 @@ var ViewJS = /*#__PURE__*/function () {
       });
       placesWrapper.innerHTML = myHTML;
       rowsPlaceTable = placesWrapper.getElementsByClassName('placerow');
+      return placesWrapper;
     }
   }, {
     key: "requestJSON",
@@ -38006,6 +37980,54 @@ var ViewJS = /*#__PURE__*/function () {
           element.hidePin();
         }
       });
+    }
+  }, {
+    key: "displayOpenResult",
+    value: function displayOpenResult(view, data) {
+      var date = new Date(); //var now = date.getHours() + date.getMinutes()/60 
+
+      now = 10;
+      var tr = view.getElementsByTagName("tr");
+      console.log(tr);
+      var openPlaceIds = [];
+
+      for (i = 0; i < tr.length; i++) {
+        var opentime, closetime;
+
+        for (x = 0; x < data.length; x++) {
+          console.log(tr[i].getElementsByTagName("td")[0].innerHTML);
+
+          if (Number(tr[i].getElementsByTagName("td")[0].innerHTML) == Number(data[x].id)) {
+            opentime = Number(data[x].open_hour) + Number(data[x].open_min) / 60;
+            closetime = Number(data[x].close_hour) + Number(data[x].close_min) / 60;
+
+            if (opentime < 24 && closetime < 24) {
+              if (opentime < closetime) {
+                if (now > opentime && now < closetime || now == opentime) {
+                  openPlaceIds.push(data[x]);
+                  tr[i].style.display = '';
+                }
+              }
+
+              if (opentime > closetime) {
+                closetime == 0 ? closetime = 24 : '';
+                closetime = 24 + closetime;
+
+                if (now > opentime && now < closetime || now + 24 > opentime && now + 24 < closetime || now == opentime) {
+                  openPlaceIds.push(data[x]);
+                  tr[i].style.display = '';
+                }
+              } else {
+                tr[i].style.display = 'none';
+              }
+            }
+          }
+        }
+
+        ;
+      }
+
+      console.log(openPlaceIds);
     }
   }, {
     key: "placeSelectedView",
