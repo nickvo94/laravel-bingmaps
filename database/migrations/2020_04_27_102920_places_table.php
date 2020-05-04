@@ -13,10 +13,10 @@ class PlacesTable extends Migration
      */
     public function up()
     {
-        Schema::table('places', function (Blueprint $table) {
-            $table->integer('lat')->default(0);
+        /* Schema::table('places', function (Blueprint $table) {
+            $table->float('lat')->default(0);
             $table->float('long')->default(0);
-        });
+        }); */
     }
 
     /**

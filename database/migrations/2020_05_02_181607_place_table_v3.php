@@ -14,9 +14,9 @@ class PlaceTableV3 extends Migration
     public function up()
     {
         //
-        Schema::table('places', function (Blueprint $table) {
+ /*        Schema::table('places', function (Blueprint $table) {
             
-        });
+        }); */
     }
 
     /**
