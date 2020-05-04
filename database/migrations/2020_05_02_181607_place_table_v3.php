@@ -15,10 +15,7 @@ class PlaceTableV3 extends Migration
     {
         //
         Schema::table('places', function (Blueprint $table) {
-            $table->dropColumn('open-hour');
-            $table->dropColumn('open-min');
-            $table->dropColumn('close-hour');
-            $table->dropColumn('close-min');
+            
         });
     }
 

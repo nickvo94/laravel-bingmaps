@@ -15,10 +15,10 @@ class PlacesTableV2 extends Migration
     {
         //
         Schema::table('places', function (Blueprint $table) {
-            $table->integer('open-hour')->default(0);
-            $table->integer('open-min')->default(0);
-            $table->integer('close-hour')->default(0);
-            $table->integer('close-min')->default(0);
+            $table->integer('open_hour')->default(0);
+            $table->integer('open_min')->default(0);
+            $table->integer('close_hour')->default(0);
+            $table->integer('close_min')->default(0);
             $table->string('description')->default('');
         });
     }

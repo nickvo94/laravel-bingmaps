@@ -15,7 +15,7 @@ class PlaceTableV4 extends Migration
     {
         //
         Schema::table('places', function (Blueprint $table) {
-            $table->dropColumn("open-hour");
+            
         });
     }
 
