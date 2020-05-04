@@ -13927,7 +13927,7 @@ a.text-dark:focus {
 }
 
 body {
-  background: lightgray;
+  background: white;
 }
 
 body .container {
@@ -13944,15 +13944,76 @@ body .main {
 body .sidebar {
   flex: 1;
   display: flex;
+  margin-right: 1em;
 }
 
 body table {
-  text-align: center;
+  text-align: left;
+  margin-top: 1em;
+  table-layout: auto;
+  width: 100%;
+}
+
+body table tr {
+  border-bottom: 1pt solid black;
 }
 
 body #elementid,
 body .lat,
 body .long {
   display: none;
+}
+
+body #add-view-mode {
+  float: left;
+}
+
+body #search {
+  margin-top: 1em;
+}
+
+body #search #searchInput {
+  width: 16em;
+}
+
+body #search #label {
+  top: 102px;
+}
+
+body .sidebarWrapper {
+  width: 90%;
+  overflow: auto;
+}
+
+body .fa-pencil {
+  padding-right: 5em;
+}
+
+body .fa-long-arrow-left,
+body .fa-floppy-o,
+body .fa-plus,
+body .fa-filter,
+body .fa-pencil,
+body .fa-trash-o {
+  color: blue;
+  padding-top: 0.5em;
+}
+
+body .fa-info-circle {
+  color: darkorange;
+  padding-top: 0.5em;
+}
+
+body h6 {
+  color: darkorange;
+  padding-top: 0.5em;
+}
+
+body #edit-delete-function {
+  padding-top: 1em;
+}
+
+body form {
+  margin-top: -1.5em;
 }
 

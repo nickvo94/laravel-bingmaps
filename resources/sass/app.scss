@@ -10,7 +10,7 @@
 @import "node_modules/font-awesome/scss/font-awesome.scss";
 
 body{
-    background: lightgray;
+    background: white;
 
     .container {
         display: flex; /* or inline-flex */
@@ -22,15 +22,60 @@ body{
 
     .sidebar { 
         flex: 1;
-        display: flex; 
+        display: flex;
+        margin-right: 1em; 
     }
 
     table{
-        text-align: center;
+        text-align: left;
+        margin-top: 1em;
+        table-layout: auto;
+        width: 100%;
+        tr {
+            border-bottom: 1pt solid black;
+        }
     }
 
     #elementid, .lat, .long {
         display: none;
+    }
+
+    #add-view-mode{
+        float: left;
+    }
+    #search {
+        margin-top: 1em;
+        #searchInput{
+            width: 16em;
+        }
+        #label {
+            top: 102px;
+        }      
+    }
+    .sidebarWrapper{
+        width: 90%;
+        overflow: auto;
+    }
+    .fa-pencil {
+        padding-right: 5em;
+    }
+    .fa-long-arrow-left, .fa-floppy-o, .fa-plus, .fa-filter, .fa-pencil, .fa-trash-o{
+        color: blue;
+        padding-top: 0.5em;
+    }
+    .fa-info-circle{
+        color: darkorange;
+        padding-top: 0.5em;
+    }
+    h6{
+        color: darkorange;
+        padding-top: 0.5em;
+    }
+    #edit-delete-function{
+        padding-top: 1em;
+    }
+    form{
+        margin-top: -1.5em;
     }
 }
 

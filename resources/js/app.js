@@ -22,7 +22,8 @@ var selected = null;
 var deleteBool = false;
 var deleteId;
 var temporaryView;
-var listViewObj
+var listViewObj;
+var filterToggle = true;
 
 
 let VIEW = new ViewJS();
@@ -201,7 +202,15 @@ window.SendRequest = function(button, id){
 }
 
 window.TimeFilter = function () {
-    VIEW.displayOpenResult(temporaryView, rawPlaceData)
+    if(filterToggle){
+        VIEW.displayOpenResult(pinsArray, rawPlaceData);
+        document.getElementById('filter').innerText = ' Clear Filter';
+    }else{
+        searchFunction();
+        document.getElementById('filter').innerText = ' Open Now';
+    }
+    filterToggle = !filterToggle;
+       
 }
 
 window.searchFunction = function() {

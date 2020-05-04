@@ -37354,6 +37354,7 @@ var deleteBool = false;
 var deleteId;
 var temporaryView;
 var listViewObj;
+var filterToggle = true;
 var VIEW = new ViewJS();
 var editorState = {
   mode: 'default',
@@ -37542,7 +37543,15 @@ window.SendRequest = function (button, id) {
 };
 
 window.TimeFilter = function () {
-  VIEW.displayOpenResult(temporaryView, rawPlaceData);
+  if (filterToggle) {
+    VIEW.displayOpenResult(pinsArray, rawPlaceData);
+    document.getElementById('filter').innerText = ' Clear Filter';
+  } else {
+    searchFunction();
+    document.getElementById('filter').innerText = ' Open Now';
+  }
+
+  filterToggle = !filterToggle;
 };
 
 window.searchFunction = function () {
@@ -37882,6 +37891,8 @@ __webpack_require__(/*! ./bootstrap */ "./resources/js/bootstrap.js");
 
 var placeholderTextArr = ["Title", "Lat", "Long", "Open hour", "Open minute", "Close hour", "Close minute", "Description"];
 var inputIdTextArr;
+var rowsPlaceTable;
+var tempIdArr = [];
 
 var ViewJS = /*#__PURE__*/function () {
   function ViewJS() {
@@ -37953,22 +37964,22 @@ var ViewJS = /*#__PURE__*/function () {
     value: function displaySearchResults(pinsArray) {
       // Declare variables
       var input, filter, tr, a, i, txtValue;
-      var tempIdArr = [];
+      tempIdArr = [];
       input = document.getElementById('searchInput');
       searchFilter = input.value.toUpperCase();
-      tr = rowsPlaceTable; // Loop through all list items, and hide those who don't match the search query
+      rowsPlaceTable; // Loop through all list items, and hide those who don't match the search query
 
-      for (i = 0; i < tr.length; i++) {
-        a = tr[i].getElementsByTagName("td")[1];
-        idRow = tr[i].getElementsByTagName("td")[0].innerHTML;
+      for (i = 0; i < rowsPlaceTable.length; i++) {
+        a = rowsPlaceTable[i].getElementsByTagName("td")[1];
+        idRow = rowsPlaceTable[i].getElementsByTagName("td")[0].innerHTML;
         txtValue = a.textContent || a.innerText;
         console.log(txtValue);
 
         if (txtValue.toUpperCase().indexOf(searchFilter) > -1) {
-          tr[i].style.display = "";
+          rowsPlaceTable[i].style.display = "";
           tempIdArr.push(Number(idRow));
         } else {
-          tr[i].style.display = "none";
+          rowsPlaceTable[i].style.display = "none";
         }
       }
 
@@ -37983,42 +37994,42 @@ var ViewJS = /*#__PURE__*/function () {
     }
   }, {
     key: "displayOpenResult",
-    value: function displayOpenResult(view, data) {
-      var date = new Date(); //var now = date.getHours() + date.getMinutes()/60 
+    value: function displayOpenResult(pinsArray, data) {
+      var date = new Date();
+      var now = date.getHours() + date.getMinutes() / 60; //now = 10; 
 
-      now = 10;
-      var tr = view.getElementsByTagName("tr");
-      console.log(tr);
+      console.log(rowsPlaceTable);
       var openPlaceIds = [];
 
-      for (i = 0; i < tr.length; i++) {
+      for (i = 0; i < rowsPlaceTable.length; i++) {
         var opentime, closetime;
 
         for (x = 0; x < data.length; x++) {
-          console.log(tr[i].getElementsByTagName("td")[0].innerHTML);
+          var rowid = rowsPlaceTable[i].getElementsByTagName("td")[0].innerHTML;
+          console.log(rowid);
 
-          if (Number(tr[i].getElementsByTagName("td")[0].innerHTML) == Number(data[x].id)) {
+          if (rowid == data[x].id) {
             opentime = Number(data[x].open_hour) + Number(data[x].open_min) / 60;
             closetime = Number(data[x].close_hour) + Number(data[x].close_min) / 60;
 
             if (opentime < 24 && closetime < 24) {
               if (opentime < closetime) {
                 if (now > opentime && now < closetime || now == opentime) {
-                  openPlaceIds.push(data[x]);
-                  tr[i].style.display = '';
+                  openPlaceIds.push(data[x].id); //rowsPlaceTable[i].style.display = '';
+                } else {
+                  rowsPlaceTable[i].style.display = 'none';
                 }
-              }
-
-              if (opentime > closetime) {
+              } else if (opentime > closetime) {
                 closetime == 0 ? closetime = 24 : '';
                 closetime = 24 + closetime;
 
                 if (now > opentime && now < closetime || now + 24 > opentime && now + 24 < closetime || now == opentime) {
-                  openPlaceIds.push(data[x]);
-                  tr[i].style.display = '';
+                  openPlaceIds.push(data[x].id); //rowsPlaceTable[i].style.display = '';
+                } else {
+                  rowsPlaceTable[i].style.display = 'none';
                 }
               } else {
-                tr[i].style.display = 'none';
+                rowsPlaceTable[i].style.display = 'none';
               }
             }
           }
@@ -38027,19 +38038,40 @@ var ViewJS = /*#__PURE__*/function () {
         ;
       }
 
+      pinsArray.forEach(function (element) {
+        if (openPlaceIds.indexOf(element.localPlaceId) > -1) {
+          element.unhidePin();
+        } else {
+          element.hidePin();
+        }
+      });
       console.log(openPlaceIds);
     }
   }, {
     key: "placeSelectedView",
     value: function placeSelectedView(element) {
-      var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
-      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>' + '<div>' + '<button type="submit" id="edit-view-mode" onClick="ActivateMode(id' + ')">Edit</button>' + '<button type="submit" onClick="DeletePlace(' + element.id + ')">Delete</button>' + '</div>';
+      var openstr;
+      var closestr;
+      element["open_min"] < 10 ? openstr = element["open_hour"] + ':' + "0" + element["open_min"] : openstr = element["open_hour"] + ':' + element["open_min"];
+      element["close_min"] < 10 ? closestr = element["close_hour"] + ':' + "0" + element["close_min"] : closestr = element["close_hour"] + ':' + element["close_min"]; //var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
+
+      var openTime = openstr + ' - ' + closestr;
+      console.log(openTime);
+      var editDelete = document.getElementById('edit-delete-function');
+      editDelete.innerHTML = '<i class="fa fa-pencil fa-lg" aria-hidden="true" type="submit" id="edit-view-mode" onClick="ActivateMode(id' + ')"> Edit</i>' + '<i class="fa fa-trash-o fa-lg" aria-hidden="true" type="submit" onClick="DeletePlace(' + element.id + ')"> Delete</i>';
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>';
     }
   }, {
     key: "placeListView",
     value: function placeListView(element) {
-      var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
-      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td class="title" id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>';
+      var openstr;
+      var closestr;
+      element["open_min"] < 10 ? openstr = element["open_hour"] + ':' + "0" + element["open_min"] : openstr = element["open_hour"] + ':' + element["open_min"];
+      element["close_min"] < 10 ? closestr = element["close_hour"] + ':' + "0" + element["close_min"] : closestr = element["close_hour"] + ':' + element["close_min"]; //var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];
+
+      var openTime = openstr + ' - ' + closestr; //var openTime = element["open_hour"] + ':' + element["open_min"] + ' - ' + element["close_hour"] + ':' + element["close_min"];     
+
+      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td id="elementid" >' + element.id + '</td> ' + '<td class="title" id="titleid' + element.id + '">' + element.title + '</td>' + '<td class="lat" id="latid' + element.id + '">' + element.lat + '</td>' + '<td class="long" id="longid' + element.id + '">' + element["long"] + '</td>' + '<td class="time" id="openid' + element.id + '">' + openTime + '</td>' + '<td class="description" id="describid' + element.id + '">' + element.description + '</td>' + '</tr>' + '</td>' + '</tr>';
     }
   }, {
     key: "editView",
@@ -38048,7 +38080,7 @@ var ViewJS = /*#__PURE__*/function () {
       inputIdTextArr = idArr;
       console.log(inputIdTextArr);
       var inputHtml = this.inputTemplate(rawData, selectedId);
-      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + inputHtml + '<br>' + '<button type="submit" onClick="SendRequest(' + 'this, ' + selectedId + ', ' + ')">Save</button>' + '</td>' + '</form> ';
+      return '<i class="fa fa-long-arrow-left fa-lg" aria-hidden="true" type="submit" onClick="BackToListView()"> Back to List view</i>' + '<i class="fa fa-info-circle fa-lg" aria-hidden="true"><h6>' + 'Please enter hour time from 0 - 23 and minute time from 0 to 59 ONLY </h6></i>' + '<form action="#">' + inputHtml + '<br>' + '<i class="fa fa-floppy-o fa-lg" aria-hidden="true" type="submit" onClick="SendRequest(' + 'this, ' + selectedId + ', ' + ')"> Save</i>' + '</form> ';
     }
   }, {
     key: "inputTemplate",
@@ -38085,12 +38117,7 @@ var ViewJS = /*#__PURE__*/function () {
       inputIdTextArr = [];
       inputIdTextArr = idArr;
       var inputhtml = this.inputTemplate();
-      return '<button type="submit" onClick="BackToListView()">Back to List view</button>' + '<form action="#">' + inputhtml + '<br>' + '<button type="submit" onClick="SendRequest(' + 'this, ' + null + ', ' + ')">Add</button>' + '</td>' + '</form> ';
-    }
-  }, {
-    key: "oldView",
-    value: function oldView() {
-      return '<tr class="placerow" id="placeid' + element.id + '" contenteditable="false" onClick="rowOnClick(this)">' + '<td>' + element.id + '</td> ' + '<td id="titleid' + element.id + '">' + element.title + '</td>' + '<td id="latid' + element.id + '">' + parseFloat(element.lat).toFixed(2) + '</td>' + '<td>' + parseFloat(element["long"]).toFixed(2) + '</td>' + '<td>' + '<button type="submit" onClick="EditPlace(' + 'this, ' + element.id + ', ' + ')">Edit</button>' + '</td>' + '<td>' + '<button type="submit" onClick="DeletePlace(' + element.id + ', ' + element.lat + ', ' + element["long"] + ')">Delete</button>' + '</td>' + '</tr>';
+      return '<i class="fa fa-long-arrow-left fa-lg" aria-hidden="true" type="submit" onClick="BackToListView()"> Back to List view</i>' + '<i class="fa fa-info-circle fa-lg" aria-hidden="true"><h6>' + 'Please enter hour time from 0 - 23 and minute time from 0 to 59 ONLY </h6></i>' + '<form action="#">' + inputhtml + '<br>' + '<i class="fa fa-floppy-o fa-lg" aria-hidden="true" type="submit" onClick="SendRequest(' + 'this, ' + null + ', ' + ')"> Add</i>' + '</form> ';
     }
   }]);
 

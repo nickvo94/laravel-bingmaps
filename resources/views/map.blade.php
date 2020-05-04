@@ -17,12 +17,17 @@
                 <div class="sidebarWrapper">
                     <h1>PlacesJS</h1>
                     <div id="list-view-layout">
-                        <i class="fa fa-plus fa-lg" aria-hidden="true" type="submit" id="add-view-mode" onclick="ActivateMode(id)">Add</i>
-                        <i class="fa fa-filter fa-lg" aria-hidden="true" type="submit" id="filter" onclick="TimeFilter()">Open places</i>
+                        <i class="fa fa-plus fa-lg" aria-hidden="true" type="submit" id="add-view-mode" onclick="ActivateMode(id)"> Add Place</i>
                         <br>
-                        <i class="fa fa-search fa-lg" aria-hidden="true"></i>
-                        <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search for names.." title="Type in a name">
-                        <table id="placesDisplay"></table>
+                        <section id="search">
+                            <input type="text" id="searchInput" onkeyup="searchFunction()" placeholder="Search by title ..." title="Type in a name">
+                            <label for="searchInput"><i class="fa fa-search" aria-hidden="true"></i></label>
+                        </section>
+                        <i class="fa fa-filter fa-sm" aria-hidden="true" type="submit" id="filter" onclick="TimeFilter()"> Open Now</i>
+                        <div style="max-width:100%; overflow:auto;">
+                            <table id="placesDisplay"></table>
+                        </div>
+                        <div id="edit-delete-function"></div>
                     </div>
                     <div id="edit-view-layout"></div>
                     <div id="add-view-layout"></div>
