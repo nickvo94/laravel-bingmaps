@@ -1,6 +1,8 @@
 
 # Instruction for the map apllication
 
+[Map application page link](http://laravel-bingmaps.herokuapp.com/map)
+
 ## Installizing locally and the components
 
 - Require composer and PHP, then install Laravel frame work
