@@ -16,25 +16,28 @@
 App has 3 modes : list mode, add mode and edit mode.
 
 In list mode:
-    - You can not add or modify any pins in this mode
-    - The table shows only 4 components to the users : title, description , open and close time. 
-    - Latitude and longitude are showed in Edit mode
-    - There are Search function by title and Time filter on the top of the page
-    - You can click on the pin to highlight the corresponding pin on the table and vice versa
-    - If you seclect a row, the Edit and Delete button will be showed at the bottom
-    - To change to the Add mode, click the plus sign on the top left corner of the page
+
+- You can not add or modify any pins in this mode
+- The table shows only 4 components to the users : title, description , open and close time. 
+- Latitude and longitude are showed in Edit mode
+- There are Search function by title and Time filter on the top of the page
+- You can click on the pin to highlight the corresponding pin on the table and vice versa
+- If you seclect a row, the Edit and Delete button will be showed at the bottom
+- To change to the Add mode, click the plus sign on the top left corner of the page
 
 In add mode:
-    - You can only at one pin at the time
-    - Click on the map to slect the place you want to add and fill on the form
-    - If you press saved, new pin will be saved and you will return to the list page
-    - If you don't want to add anything, just press back button on top
+
+- You can only at one pin at the time
+- Click on the map to slect the place you want to add and fill on the form
+- If you press saved, new pin will be saved and you will return to the list page
+- If you don't want to add anything, just press back button on top
 
 In edit mode:
-    - All the information of the pin will be display in this mode
-    - You can click on any place on the map to modify the latitude and longitude
-    - All the other information are editable in the input field
-    - Both pressing Save or back, it will guide you back to the list page
+
+- All the information of the pin will be display in this mode
+- You can click on any place on the map to modify the latitude and longitude
+- All the other information are editable in the input field
+- Both pressing Save or back, it will guide you back to the list page
 
 ## Future improvements
 
