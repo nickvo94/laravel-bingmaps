@@ -15,7 +15,7 @@
 
             <div id="info" class="sidebar">
                 <div class="sidebarWrapper">
-                    <h1>PlacesJS</h1>
+                    <h1>Map Application</h1>
                     <div id="list-view-layout">
                         <i class="fa fa-plus fa-lg" aria-hidden="true" type="submit" id="add-view-mode" onclick="ActivateMode(id)"> Add Place</i>
                         <br>

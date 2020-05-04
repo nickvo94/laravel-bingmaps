@@ -13973,7 +13973,7 @@ body #search {
 }
 
 body #search #searchInput {
-  width: 16em;
+  width: 90%;
 }
 
 body #search #label {
